@@ -198,7 +198,13 @@ export class DatabaseManager {
   }
 
   async import(data: Blob) {
-    return importInto(this.db, data).catch(this.logError);
+    return importInto(this.db, data, {
+      acceptNameDiff: true,
+      acceptVersionDiff: true,
+      acceptMissingTables: true,
+      acceptChangedPrimaryKey: true,
+      overwriteValues: true,
+    });
   }
 
   async clear() {
