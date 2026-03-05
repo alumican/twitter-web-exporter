@@ -74,7 +74,8 @@ export class DatabaseManager {
       return [];
     }
 
-    const tweetIds = this.sortCaptures(captures).map((capture) => capture.data_key);
+    const sortedCaptures = this.sortCaptures(captures);
+    const tweetIds = sortedCaptures.map((capture) => capture.data_key);
     const tweets = await this.tweets()
       .where('rest_id')
       .anyOf(tweetIds)
@@ -85,9 +86,25 @@ export class DatabaseManager {
       return [];
     }
 
+    // Build a map of bookmark_collection_ids from captures.
+    const captureMap = new Map(sortedCaptures.map((c) => [c.data_key, c]));
+
     // Sort again based on capture order since IndexDB query with "anyOf" does not obey that order.
     const map = new Map(tweets.map((t) => [t.rest_id, t]));
-    return tweetIds.map((id) => map.get(id)).filter((t): t is Tweet => !!t);
+    return tweetIds
+      .map((id) => {
+        const tweet = map.get(id);
+        if (!tweet) return null;
+        const capture = captureMap.get(id);
+        if (capture?.bookmark_collection_ids?.length) {
+          tweet.twe_private_fields = {
+            ...tweet.twe_private_fields,
+            bookmark_collection_ids: capture.bookmark_collection_ids,
+          };
+        }
+        return tweet;
+      })
+      .filter((t): t is Tweet => !!t);
   }
 
   async extGetCapturedUsers(extName: string) {

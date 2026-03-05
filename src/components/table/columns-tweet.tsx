@@ -66,6 +66,19 @@ export const columns = [
     header: () => <Trans i18nKey="ID" />,
     cell: (info) => <p class="w-20 break-all font-mono text-xs">{info.getValue()}</p>,
   }),
+  columnHelper.accessor(
+    (row) => row.twe_private_fields?.bookmark_collection_ids?.join(', ') ?? '',
+    {
+      id: 'bookmark_folder_ids',
+      meta: {
+        exportKey: 'bookmark_folder_ids',
+        exportHeader: 'Folder IDs',
+        exportValue: (row) => row.original.twe_private_fields?.bookmark_collection_ids ?? [],
+      },
+      header: () => <Trans i18nKey="Folder IDs" />,
+      cell: (info) => <p class="w-24 break-all font-mono text-xs">{info.getValue() || 'N/A'}</p>,
+    },
+  ),
   columnHelper.accessor((row) => +parseTwitterDateTime(row.legacy?.created_at), {
     id: 'created_at',
     meta: {

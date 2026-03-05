@@ -147,6 +147,8 @@ export interface Tweet {
     media_count: number;
     /** The UNIX timestamp in ms when the data record was migrated from legacy format. */
     migrated_at?: number;
+    /** IDs of bookmark folders this tweet belongs to (merged from captures). */
+    bookmark_collection_ids?: string[];
   };
 }
 
