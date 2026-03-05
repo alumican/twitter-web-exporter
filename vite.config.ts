@@ -41,10 +41,10 @@ export default defineConfig({
       entry: 'src/main.tsx',
       userscript: {
         name: {
-          '': 'Twitter Web Exporter',
-          'zh-CN': 'Twitter 数据导出工具',
-          'zh-TW': 'Twitter 資料匯出工具',
-          ja: 'Twitter データエクスポーター',
+          '': 'Twitter Web Exporter (Custom)',
+          'zh-CN': 'Twitter 数据导出工具 (Custom)',
+          'zh-TW': 'Twitter 資料匯出工具 (Custom)',
+          ja: 'Twitter データエクスポーター (Custom)',
         },
         description: {
           '': 'Export tweets, bookmarks, lists and much more to JSON/CSV/HTML from Twitter(X) web app.',
