@@ -11,7 +11,7 @@ import logger from '@/utils/logger';
 import { ExtensionType } from '../extensions';
 import { options } from '../options';
 
-const DB_NAME = packageJson.name;
+const DB_NAME = `${packageJson.name}-custom`;
 const DB_VERSION = 3;
 
 declare global {
@@ -118,21 +118,44 @@ export class DatabaseManager {
   |--------------------------------------------------------------------------
   */
 
-  async extAddTweets(extName: string, items: WithSortIndex<Tweet>[]) {
+  async extAddTweets(
+    extName: string,
+    items: WithSortIndex<Tweet>[],
+    bookmarkCollectionId?: string,
+  ) {
     const sorted = this.sortItems(items);
     await this.upsertTweets(sorted.map((item) => item.data));
-    await this.upsertCaptures(
-      sorted.map((item, i) => ({
-        id: `${extName}-${item.data.rest_id}`,
-        extension: extName,
-        type: ExtensionType.TWEET,
-        data_key: item.data.rest_id,
-        // Here we add a small increment to make sure that the original order is preserved
-        // when falling back to created_at sorting in case of missing sortIndex.
-        created_at: Date.now() + i,
-        sort_index: item.sortIndex,
-      })),
-    );
+
+    const newCaptures: Capture[] = sorted.map((item, i) => ({
+      id: `${extName}-${item.data.rest_id}`,
+      extension: extName,
+      type: ExtensionType.TWEET,
+      data_key: item.data.rest_id,
+      // Here we add a small increment to make sure that the original order is preserved
+      // when falling back to created_at sorting in case of missing sortIndex.
+      created_at: Date.now() + i,
+      sort_index: item.sortIndex,
+    }));
+
+    if (bookmarkCollectionId) {
+      // Fetch existing captures and merge bookmark_collection_ids.
+      const ids = newCaptures.map((c) => c.id);
+      const existing = await this.captures().where('id').anyOf(ids).toArray();
+      const map = new Map(existing.map((c) => [c.id, c]));
+
+      for (const capture of newCaptures) {
+        const prev = map.get(capture.id);
+        const prevIds = prev?.bookmark_collection_ids ?? [];
+        capture.bookmark_collection_ids = [...new Set([...prevIds, bookmarkCollectionId])];
+        if (prev) {
+          // Preserve existing timestamp and sort index.
+          capture.created_at = prev.created_at;
+          capture.sort_index = prev.sort_index ?? capture.sort_index;
+        }
+      }
+    }
+
+    await this.upsertCaptures(newCaptures);
   }
 
   async extAddUsers(extName: string, items: WithSortIndex<User>[]) {

@@ -166,4 +166,6 @@ export interface Capture {
   created_at: number;
   /** Timeline sort index returned by Twitter. Higher values appear first. */
   sort_index?: string;
+  /** IDs of bookmark folders this tweet belongs to. */
+  bookmark_collection_ids?: string[];
 }

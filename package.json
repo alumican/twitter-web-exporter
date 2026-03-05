@@ -4,8 +4,8 @@
   "version": "1.4.0",
   "author": "prin <hi@prin.studio>",
   "license": "MIT",
-  "homepage": "https://github.com/prinsss/twitter-web-exporter",
-  "bugs": "https://github.com/prinsss/twitter-web-exporter/issues",
+  "homepage": "https://github.com/alumican/twitter-web-exporter",
+  "bugs": "https://github.com/alumican/twitter-web-exporter/issues",
   "private": true,
   "type": "module",
   "scripts": {
