@@ -74,6 +74,31 @@ Settings パネルの既存ボタン (Analyze / Export / Clear) の下に「Impo
 
 ---
 
+## 4. テーブルに「Folder IDs」列を追加
+
+### 背景
+
+ブックマークフォルダ単位の収集に対応したが、キャプチャされたツイートがどのフォルダに属しているかをUI上で確認する手段がなかった。
+
+### 変更内容
+
+ツイートテーブルの「ID」列の右隣に「Folder IDs」列を追加。フォルダ経由でキャプチャされたツイートにはフォルダIDがカンマ区切りで表示され、それ以外は「N/A」と表示される。エクスポート (JSON/CSV/HTML) にも含まれる。
+
+データの流れ:
+- `bookmark_collection_ids` は `captures` テーブルに保存されている
+- `extGetCapturedTweets` でクエリ時に `captures` から `Tweet` の `twe_private_fields.bookmark_collection_ids` にマージして返す
+
+### 変更ファイル
+
+| ファイル | 変更概要 |
+|---|---|
+| `src/types/tweet.ts` | `twe_private_fields` に `bookmark_collection_ids?: string[]` を追加 |
+| `src/core/database/manager.ts` | `extGetCapturedTweets` でキャプチャのフォルダIDをツイートにマージ |
+| `src/components/table/columns-tweet.tsx` | 「Folder IDs」列の定義を追加 |
+| `src/i18n/locales/*/exporter.json` | 全5言語に `Folder IDs` の翻訳キーを追加 |
+
+---
+
 ## prinsss版からのデータ移行手順
 
 1. **prinsss版**の Settings → **Export DB** で `.json` ファイルをダウンロード
