@@ -1,7 +1,7 @@
 {
   "name": "twitter-web-exporter",
   "description": "Export tweets, bookmarks, lists and much more from Twitter(X) web app.",
-  "version": "1.4.0-custom",
+  "version": "1.4.3-custom",
   "author": "alumican",
   "license": "MIT",
   "homepage": "https://github.com/alumican/twitter-web-exporter",

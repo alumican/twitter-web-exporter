@@ -13,7 +13,7 @@ export async function migration_20250609(tx: Transaction) {
     .modify((user) => {
       // Skip if it's already in the new format.
       if (user.core && user.avatar) {
-        return;
+        return false;
       }
 
       migrateFromLegacyUser(user);
@@ -32,7 +32,7 @@ export async function migration_20250609(tx: Transaction) {
 
       // Skip if it's already in the new format.
       if (user && user.core && user.avatar) {
-        return;
+        return false;
       }
 
       migrateFromLegacyUser(user);

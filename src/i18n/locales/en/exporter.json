@@ -46,6 +46,14 @@
   "Recipient": "Recipient",
   "Conversation ID": "Conversation ID",
   "Conversation Type": "Conversation Type",
+  "About Profile": "About Profile",
+  "Account based in": "Account based in",
+  "Country or region may not be accurate": "Country or region may not be accurate",
+  "Connected via": "Connected via",
+  "Verified since": "Verified since",
+  "An affiliate of": "An affiliate of",
+  "Username changes": "Username changes",
+  "Last changed": "Last changed",
 
   "Data": "Data",
   "Export captured data as JSON/HTML/CSV file. This may take a while depending on the amount of data. The exported file does not include media files such as images and videos but only the URLs.": "Export captured data as JSON/HTML/CSV file. This may take a while depending on the amount of data. The exported file does not include media files such as images and videos but only the URLs.",
@@ -77,6 +85,7 @@
   "The post time in HHmmss format": "The post time in HHmmss format",
   "The media type (photo/video/animated_gif)": "The media type (photo/video/animated_gif)",
   "The file extension of media (jpg/png/mp4)": "The file extension of media (jpg/png/mp4)",
+  "Any property path of the tweet or media object also works, for example:": "Any property path of the tweet or media object also works, for example:",
   "Failed to export media. Open DevTools for more details.": "Failed to export media. Open DevTools for more details.",
   "Failed to copy media URLs. Open DevTools for more details.": "Failed to copy media URLs. Open DevTools for more details.",
 

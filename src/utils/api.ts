@@ -1,4 +1,5 @@
 import {
+  EntityURL,
   ItemContentUnion,
   Media,
   Tag,
@@ -174,7 +175,7 @@ export function isTimelineEntryProfileGrid(
 ): entry is TimelineEntry<TimelineTweet, TimelineTimelineModule<TimelineTweet>> {
   return (
     isTimelineEntryModule<TimelineTweet>(entry) &&
-    entry.entryId.startsWith('profile-grid-') &&
+    /^profile-(photo-)?grid-/.test(entry.entryId) &&
     Array.isArray(entry.content.items)
   );
 }
@@ -298,7 +299,62 @@ export function extractTweetMediaTags(tweet: Tweet): Tag[] {
 }
 
 export function extractTweetFullText(tweet: Tweet): string {
-  return tweet.note_tweet?.note_tweet_results.result.text ?? tweet.legacy?.full_text;
+  return tweet?.note_tweet?.note_tweet_results?.result?.text ?? tweet?.legacy?.full_text;
+}
+
+/*
+|--------------------------------------------------------------------------
+| User field accessors.
+|
+| Since the `legacy` object was removed we need to support both the new and old formats.
+|--------------------------------------------------------------------------
+*/
+
+export function extractUserDescription(user: User): string | undefined {
+  return user.profile_bio?.description ?? user.legacy?.description;
+}
+
+export function extractUserDescriptionEntities(user: User): EntityURL[] {
+  return (
+    user.profile_bio?.entities?.description?.urls ?? user.legacy?.entities?.description?.urls ?? []
+  );
+}
+
+export function extractUserWebsite(user: User): string | undefined {
+  return user.website?.url ?? user.legacy?.url;
+}
+
+export function extractUserWebsiteEntities(user: User): EntityURL[] {
+  return user.profile_bio?.entities?.url?.urls ?? user.legacy?.entities?.url?.urls ?? [];
+}
+
+export function extractUserProfileBanner(user: User): string | undefined {
+  return user.banner?.image_url ?? user.legacy?.profile_banner_url;
+}
+
+export function extractUserFollowersCount(user: User): number | undefined {
+  return user.relationship_counts?.followers ?? user.legacy?.followers_count;
+}
+
+export function extractUserFollowingCount(user: User): number | undefined {
+  return user.relationship_counts?.following ?? user.legacy?.friends_count;
+}
+
+export function extractUserStatusesCount(user: User): number | undefined {
+  return user.tweet_counts?.tweets ?? user.legacy?.statuses_count;
+}
+
+export function extractUserMediaCount(user: User): number | undefined {
+  return user.tweet_counts?.media_tweets ?? user.legacy?.media_count;
+}
+
+export function extractUserFavouritesCount(user: User): number | undefined {
+  return user.action_counts?.favorites_count ?? user.legacy?.favourites_count;
+}
+
+export function extractUserListedCount(user: User): number | undefined {
+  // No replacement currently exists for this field in the new format.
+  return user.legacy?.listed_count;
 }
 
 export function filterEmptyTweet(tweet: Tweet): Tweet | null {
@@ -381,8 +437,8 @@ export function getTweetURL(tweet: Tweet): string {
   return `https://twitter.com/${extractTweetUserScreenName(tweet)}/status/${tweet.legacy?.id_str}`;
 }
 
-export function getUserURL(user: User | string): string {
-  return `https://twitter.com/${typeof user === 'string' ? user : user.core?.screen_name}`;
+export function getUserURL(user: User | string | undefined): string {
+  return `https://twitter.com/${typeof user === 'string' ? user : user?.core?.screen_name}`;
 }
 
 export function getInReplyToTweetURL(tweet: Tweet): string {

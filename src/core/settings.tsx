@@ -1,5 +1,5 @@
 import { Fragment } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { useSignal } from '@preact/signals';
 import {
   IconSettings,
@@ -27,7 +27,6 @@ export function Settings() {
 
   const currentTheme = useSignal(options.get('theme'));
   const [showSettings, toggleSettings] = useToggle(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const styles = {
     subtitle: 'mb-2 text-base-content ml-4 opacity-50 font-semibold text-xs',
@@ -190,6 +189,49 @@ export function Settings() {
                 <IconDatabaseExport size={20} />
                 {t('Export DB')}
               </button>
+              <input
+                type="file"
+                accept="application/json"
+                id="twe-import-db-input"
+                class="hidden"
+                onChange={async (e) => {
+                  const input = e.target as HTMLInputElement;
+                  const file = input.files?.[0];
+                  input.value = '';
+                  if (!file) {
+                    return;
+                  }
+
+                  if (
+                    !confirm(
+                      t(
+                        'Import will merge data into the existing database. This may produce unpredictable results when records conflict. For a stable restore, cancel now, export a backup, then clear the DB before importing again.\n\nContinue with merge import?',
+                      ),
+                    )
+                  ) {
+                    return;
+                  }
+
+                  try {
+                    await db.import(file);
+                  } catch (error) {
+                    alert(`${t('Failed to import database.')}\n\n${(error as Error).message}`);
+                    return;
+                  }
+
+                  alert(t('Database imported. The page will reload now.'));
+                  location.reload();
+                }}
+              />
+              <button
+                class="btn btn-xs btn-primary mr-2"
+                onClick={() => {
+                  document.getElementById('twe-import-db-input')?.click();
+                }}
+              >
+                <IconDatabaseImport size={20} />
+                {t('Import DB')}
+              </button>
               <button
                 class="btn btn-xs btn-warning"
                 onClick={async () => {
@@ -200,47 +242,6 @@ export function Settings() {
               >
                 <IconTrashX size={20} />
                 {t('Clear DB')}
-              </button>
-            </div>
-          </div>
-          <div class={styles.item}>
-            <div class="flex items-center">
-              <span class="label-text whitespace-nowrap">{t('Import Database')}</span>
-            </div>
-            <div class="flex">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                class="hidden"
-                onChange={async (e) => {
-                  const file = (e.target as HTMLInputElement)?.files?.[0];
-                  if (!file) return;
-                  if (
-                    !confirm(
-                      t('Are you sure to import this database? Existing data may be overwritten.'),
-                    )
-                  ) {
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    return;
-                  }
-                  try {
-                    await db.import(file);
-                    alert(t('Database imported successfully. The page will reload.'));
-                    location.reload();
-                  } catch (err) {
-                    alert(`${t('Failed to import database.')}\n${(err as Error).message}`);
-                  } finally {
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }
-                }}
-              />
-              <button
-                class="btn btn-xs btn-secondary"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <IconDatabaseImport size={20} />
-                {t('Import DB')}
               </button>
             </div>
           </div>

@@ -8,7 +8,11 @@ import {
   Tweet,
   WithSortIndex,
 } from '@/types';
-import { extractTimelineTweet, isTimelineEntryProfileGrid } from '@/utils/api';
+import {
+  extractTimelineTweet,
+  isTimelineEntryProfileGrid,
+  isTimelineEntryTweet,
+} from '@/utils/api';
 import logger from '@/utils/logger';
 
 interface UserMediaResponse {
@@ -27,9 +31,11 @@ interface UserMediaResponse {
   };
 }
 
-// https://twitter.com/i/api/graphql/oMVVrI5kt3kOpyHHTTKf5Q/UserMedia
+// https://twitter.com/i/api/graphql/XIHPPDFf0sv_vq-jGY2R6A/UserPhotoTimeline
+// https://twitter.com/i/api/graphql/nQtJBz_PX3Dr8Erk3oyhuA/UserVideoTimeline
+// https://twitter.com/i/api/graphql/oMVVrI5kt3kOpyHHTTKf5Q/UserMedia # Retired 2026/08
 export const UserMediaInterceptor: Interceptor = (req, res, ext) => {
-  if (!/\/graphql\/.+\/UserMedia/.test(req.url)) {
+  if (!/\/graphql\/.+\/(UserMedia|User(?:Photo|Video)Timeline)/.test(req.url)) {
     return;
   }
 
@@ -41,6 +47,8 @@ export const UserMediaInterceptor: Interceptor = (req, res, ext) => {
 
     // There are two types of instructions: "TimelineAddEntries" and "TimelineAddToModule".
     // For "Media", the "TimelineAddEntries" instruction initializes "profile-grid" module.
+    // Update 2026/08: The "Videos" tab now returns plain tweet entries
+    // while the "Photos" tab renamed modules to "profile-photo-grid".
     const timelineAddEntriesInstruction = instructions.find(
       (i) => i.type === 'TimelineAddEntries',
     ) as TimelineAddEntriesInstruction<TimelineTweet>;
@@ -49,6 +57,14 @@ export const UserMediaInterceptor: Interceptor = (req, res, ext) => {
     const timelineAddEntriesInstructionEntries = timelineAddEntriesInstruction?.entries ?? [];
 
     for (const entry of timelineAddEntriesInstructionEntries) {
+      // Extract normal tweets.
+      if (isTimelineEntryTweet(entry)) {
+        const tweet = extractTimelineTweet(entry.content.itemContent);
+        if (tweet) {
+          newData.push({ data: tweet, sortIndex: entry.sortIndex });
+        }
+      }
+
       if (isTimelineEntryProfileGrid(entry)) {
         const tweetsInSearchGrid = entry.content.items
           .map((i) => extractTimelineTweet(i.item.itemContent))

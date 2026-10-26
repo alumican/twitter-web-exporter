@@ -3,7 +3,7 @@ import Dexie, { KeyPaths } from 'dexie';
 import { exportDB, importInto } from 'dexie-export-import';
 
 import packageJson from '@/../package.json';
-import { Capture, Tweet, User, WithSortIndex } from '@/types';
+import { Capture, Tweet, User, UserLegacy, WithSortIndex } from '@/types';
 import { compareSortIndex, extractTweetMedia } from '@/utils/api';
 import { parseTwitterDateTime } from '@/utils/common';
 import { migration_20250609 } from '@/utils/migration';
@@ -22,6 +22,11 @@ declare global {
     };
   }
 }
+
+// Some modules (e.g. UserAboutModule) write special field to users table, which is not included
+// in the default User type and thus not handled by other modules like UserDetailModule.
+// We need to preserve this field when doing upserts to avoid losing data.
+const PRESERVED_USER_FIELDS: (keyof User)[] = ['about_profile'];
 
 export class DatabaseManager {
   private db: Dexie;
@@ -79,7 +84,7 @@ export class DatabaseManager {
     const tweets = await this.tweets()
       .where('rest_id')
       .anyOf(tweetIds)
-      .filter((t) => this.filterEmptyData(t))
+      .filter((t) => this.filterEmptyTweet(t))
       .toArray()
       .catch(this.logError);
     if (!tweets) {
@@ -117,7 +122,7 @@ export class DatabaseManager {
     const users = await this.users()
       .where('rest_id')
       .anyOf(userIds)
-      .filter((u) => this.filterEmptyData(u))
+      .filter((u) => this.filterEmptyUser(u))
       .toArray()
       .catch(this.logError);
     if (!users) {
@@ -190,6 +195,30 @@ export class DatabaseManager {
     );
   }
 
+  async extUpdateUsers(
+    extName: string,
+    items: WithSortIndex<Partial<User> & { rest_id: string }>[],
+  ) {
+    const sorted = this.sortItems(items);
+
+    // Since Dexie's bulkPut will overwrite the entire record if the primary key matches,
+    // we use merge mode to perform a real "upsert" that merges existing data with new data.
+    await this.upsertUsers(
+      sorted.map((item) => item.data),
+      true,
+    );
+    await this.upsertCaptures(
+      sorted.map((item, i) => ({
+        id: `${extName}-${item.data.rest_id}`,
+        extension: extName,
+        type: ExtensionType.USER,
+        data_key: item.data.rest_id,
+        created_at: Date.now() + i,
+        sort_index: item.sortIndex,
+      })),
+    );
+  }
+
   /*
   |--------------------------------------------------------------------------
   | Delete Methods for Extensions
@@ -211,17 +240,30 @@ export class DatabaseManager {
   */
 
   async export() {
+    logger.info('Exporting database...');
     return exportDB(this.db).catch(this.logError);
   }
 
   async import(data: Blob) {
-    return importInto(this.db, data, {
-      acceptNameDiff: true,
-      acceptVersionDiff: true,
-      acceptMissingTables: true,
-      acceptChangedPrimaryKey: true,
-      overwriteValues: true,
-    });
+    logger.info('Importing database...');
+
+    try {
+      await importInto(this.db, data, {
+        // Fork: accept dumps exported from a database with a different name, e.g. a dump of
+        // prinsss' "twitter-web-exporter" imported into "twitter-web-exporter-custom".
+        acceptNameDiff: true,
+        acceptVersionDiff: true,
+        acceptMissingTables: true,
+        acceptChangedPrimaryKey: true,
+        overwriteValues: true,
+      });
+
+      // Run migrations for legacy user format in case the imported data contains old user records.
+      await this.db.transaction('rw', this.tweets(), this.users(), (tx) => migration_20250609(tx));
+    } catch (error) {
+      this.logError(error);
+      throw error;
+    }
   }
 
   async clear() {
@@ -267,16 +309,33 @@ export class DatabaseManager {
       .catch(this.logError);
   }
 
-  async upsertUsers(users: User[]) {
+  async upsertUsers(users: (Partial<User> & { rest_id: string })[], mergeMode?: boolean) {
     return this.db
-      .transaction('rw', this.users(), () => {
-        const data: User[] = users.map((user) => ({
-          ...user,
-          twe_private_fields: {
-            created_at: +parseTwitterDateTime(user.core?.created_at),
-            updated_at: Date.now(),
-          },
-        }));
+      .transaction('rw', this.users(), async () => {
+        const restIds = users.map((u) => u.rest_id);
+        const existing = await this.users().where('rest_id').anyOf(restIds).toArray();
+        const existingMap = new Map(existing.map((u) => [u.rest_id, u]));
+
+        const data: User[] = users.map((user) => {
+          const prev = existingMap.get(user.rest_id);
+          // In merge mode, all fields from the existing record are preserved (true upsert).
+          // Otherwise the record is overwritten, except for preserved fields.
+          const merged = mergeMode
+            ? { ...prev, ...user }
+            : {
+                ...user,
+                ...Object.fromEntries(
+                  PRESERVED_USER_FIELDS.map((field) => [field, user[field] ?? prev?.[field]]),
+                ),
+              };
+          return {
+            ...merged,
+            twe_private_fields: {
+              created_at: +parseTwitterDateTime(user.core?.created_at),
+              updated_at: Date.now(),
+            },
+          } as User;
+        });
 
         return this.users().bulkPut(data);
       })
@@ -303,9 +362,17 @@ export class DatabaseManager {
     return this.captures().clear().catch(this.logError);
   }
 
-  private filterEmptyData(data: Tweet | User) {
+  private filterEmptyTweet(data: Tweet) {
     if (!data?.legacy) {
-      logger.warn('Empty data found in DB', data);
+      logger.warn('Empty tweet found in DB', data);
+      return false;
+    }
+    return true;
+  }
+
+  private filterEmptyUser(data: User) {
+    if (!data?.core && !data?.legacy) {
+      logger.warn('Empty user found in DB', data);
       return false;
     }
     return true;
@@ -337,7 +404,7 @@ export class DatabaseManager {
     ];
 
     // Indexes for the "users" table.
-    const userIndexPaths: KeyPaths<User>[] = [
+    const userIndexPaths: KeyPaths<UserLegacy>[] = [
       'rest_id',
       'twe_private_fields.created_at',
       'twe_private_fields.updated_at',

@@ -2,7 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.4.0](https://github.com/prinsss/twitter-web-exporter/compare/v1.3.1..v1.4.0) - 2026-02-25
+## [1.4.3](https://github.com/prinsss/twitter-web-exporter/compare/v1.4.2..v1.4.3) - 2026-08-31
+
+### ⛰️  Features
+
+- Adapt to API changes for profile-photo-grid - ([3e07f1e](https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1))
+
+## [1.4.2](https://github.com/prinsss/twitter-web-exporter/compare/v1.4.1..v1.4.2) - 2026-08-19
+
+### ⛰️  Features
+
+- Adapt to API changes on user profile pages - ([dfe5d02](https://github.com/prinsss/twitter-web-exporter/commit/dfe5d0280606c7c32c437ffad468e7a5dc54fc79))
+
+## [1.4.1](https://github.com/prinsss/twitter-web-exporter/compare/v1.4.0..v1.4.1) - 2026-07-29
+
+### ⛰️  Features
+
+- Update tooltip for media filename patterns - ([09c3e7e](https://github.com/prinsss/twitter-web-exporter/commit/09c3e7ea517e35b18bd16e19b0b24f4310b20796))
+- Add alert for DB importing failure - ([6c7d313](https://github.com/prinsss/twitter-web-exporter/commit/6c7d313bf3c43958aa2c09ac2e62c696d77f754b))
+- Count bytes while truncating filename components - ([0ebf8b6](https://github.com/prinsss/twitter-web-exporter/commit/0ebf8b6504aa85d1bb048834913b00533af7a01b))
+- Adapt to the latest API change which breaks user extractors - ([47d664b](https://github.com/prinsss/twitter-web-exporter/commit/47d664b9e6f3bdb9b26d3faefb9fdf64e1b2eeba))
+- Run migrations after importing DB dump - ([bbb2986](https://github.com/prinsss/twitter-web-exporter/commit/bbb29869ceedaacd98008f09cc739b130383e2b3))
+- Import DB from exported JSON dump - ([b2f31c5](https://github.com/prinsss/twitter-web-exporter/commit/b2f31c5930a666fb98723adfc62bd2be0402deee))
+- Use property path as media filename pattern - ([8735ac4](https://github.com/prinsss/twitter-web-exporter/commit/8735ac4a59aaaa04f05b37824a3d7a4a11b2b8fb))
+- Add UserAboutModule - ([799fbc3](https://github.com/prinsss/twitter-web-exporter/commit/799fbc368e3dc5de710211765e0925d27857d7db))
+- Allow filename placeholders to be used many times - ([39e02a2](https://github.com/prinsss/twitter-web-exporter/commit/39e02a206b99287729d04076949716c20d546b22))
+
+### 🐛 Bug Fixes
+
+- Tweet.core could somehow be undefined - ([53fce06](https://github.com/prinsss/twitter-web-exporter/commit/53fce064c0eaf0372c14769b39cce8932b44b14d))
+- Note_tweet_results.result could somehow be undefined - ([ef83e68](https://github.com/prinsss/twitter-web-exporter/commit/ef83e682a187bd2f56c6eaa5e1fd56e9f8db2476))
+
+### 📚 Documentation
+
+- Disable creating blank issues - ([0fb1020](https://github.com/prinsss/twitter-web-exporter/commit/0fb10205124c1f9ae8f3b52930adcb3f9296221c))
+- Add issue templates - ([099cfd3](https://github.com/prinsss/twitter-web-exporter/commit/099cfd32590ab7aa284e296ed7c244b791898a74))
+
+## [1.4.0](https://github.com/prinsss/twitter-web-exporter/compare/v1.3.1..v1.4.0) - 2026-02-24
 
 ### ⛰️  Features
 

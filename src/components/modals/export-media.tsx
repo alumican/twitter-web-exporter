@@ -103,6 +103,16 @@ export function ExportMediaModal<T>({
     }
   };
 
+  const filenamePatternTip = [
+    ...Object.entries(patterns).map(
+      ([key, value]) => `{${key}} - ${t(value.description as TranslationKey)}`,
+    ),
+    '',
+    t('Any property path of the tweet or media object also works, for example:'),
+    '{tweet.legacy.favorite_count}',
+    '{media.video_info.duration_millis}',
+  ].join('\n');
+
   return (
     <Modal
       class="max-w-sm md:max-w-screen-sm sm:max-w-screen-sm max-h-full"
@@ -131,9 +141,7 @@ export function ExportMediaModal<T>({
             <p class="leading-8">{t('Filename template:')}</p>
             <div
               class="tooltip tooltip-bottom col-span-3 before:whitespace-pre-line before:max-w-max"
-              data-tip={Object.entries(patterns)
-                .map(([key, value]) => `{${key}} - ${t(value.description as TranslationKey)}`)
-                .reduce((acc, cur) => acc + cur + '\n', '')}
+              data-tip={filenamePatternTip}
             >
               <input
                 type="text"

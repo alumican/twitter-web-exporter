@@ -31,10 +31,18 @@ interface UserTweetsResponse {
   };
 }
 
-// https://twitter.com/i/api/graphql/H8OOoI-5ZE4NxgRr8lfyWg/UserTweets
-// https://twitter.com/i/api/graphql/Q6aAvPw7azXZbqXzuqTALA/UserTweetsAndReplies
+// https://twitter.com/i/api/graphql/jcbfqPu_2XMNOwVyGypRhw/UserOriginalsTimeline
+// https://twitter.com/i/api/graphql/dRUXRSlEIPlVmPgOQ8Z43g/UserRepliesTimeline
+// https://twitter.com/i/api/graphql/bV_DHAIvQ945LAA1-eIIow/UserRepostsTimeline
+// https://twitter.com/i/api/graphql/ryXhzHPlD6YJE137gSf7mQ/UserHighlightsTweets
+// https://twitter.com/i/api/graphql/H8OOoI-5ZE4NxgRr8lfyWg/UserTweets # Retired 2026/08
+// https://twitter.com/i/api/graphql/Q6aAvPw7azXZbqXzuqTALA/UserTweetsAndReplies # Retired 2026/08
 export const UserTweetsInterceptor: Interceptor = (req, res, ext) => {
-  if (!/\/graphql\/.+\/UserTweets/.test(req.url)) {
+  if (
+    !/\/graphql\/.+\/(UserTweets|User(?:Originals|Replies|Reposts)Timeline|UserHighlightsTweets)/.test(
+      req.url,
+    )
+  ) {
     return;
   }
 
