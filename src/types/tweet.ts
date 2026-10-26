@@ -1,4 +1,4 @@
-import { EntityURL } from './index';
+import { BookmarkFolderRef, EntityURL } from './index';
 import { User } from './user';
 
 export interface TimelineTweet {
@@ -149,6 +149,8 @@ export interface Tweet {
     migrated_at?: number;
     /** IDs of bookmark folders this tweet belongs to (merged from captures). */
     bookmark_collection_ids?: string[];
+    /** Bookmark folders resolved from `bookmark_collection_ids` and the folder table. */
+    bookmark_folders?: BookmarkFolderRef[];
   };
 }
 

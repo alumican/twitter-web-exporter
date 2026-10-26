@@ -169,3 +169,29 @@ export interface Capture {
   /** IDs of bookmark folders this tweet belongs to. */
   bookmark_collection_ids?: string[];
 }
+
+/**
+ * A bookmark folder (called "bookmark collection" in Twitter's API).
+ * Captured from the folder list (`BookmarkFoldersSlice`) and folder create/edit responses.
+ */
+export interface BookmarkFolder {
+  /** Folder ID. Same value as `bookmark_collection_ids` in captures. */
+  id: string;
+  /** Latest known folder name. */
+  name: string;
+  /** The UNIX timestamp in ms when the folder was first captured. */
+  first_seen_at: number;
+  /** The UNIX timestamp in ms when the folder was last captured or updated. */
+  updated_at: number;
+  /** Raw cover media object returned by Twitter, if any. */
+  media?: unknown;
+}
+
+/**
+ * A bookmark folder reference resolved for display and exporting.
+ * `name` is null when the folder has not been captured from the folder list yet.
+ */
+export interface BookmarkFolderRef {
+  id: string;
+  name: string | null;
+}

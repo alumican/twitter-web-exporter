@@ -36,6 +36,13 @@ declare module '@tanstack/table-core' {
     exportHeader?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exportValue?: (row: Row<TData>) => any;
+    /** Additional fields exported right after this column (not shown in the table). */
+    exportExtra?: {
+      key: string;
+      header: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      value: (row: Row<TData>) => any;
+    }[];
   }
 }
 

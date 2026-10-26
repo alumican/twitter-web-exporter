@@ -3,7 +3,15 @@ import Dexie, { KeyPaths } from 'dexie';
 import { exportDB, importInto } from 'dexie-export-import';
 
 import packageJson from '@/../package.json';
-import { Capture, Tweet, User, UserLegacy, WithSortIndex } from '@/types';
+import {
+  BookmarkFolder,
+  BookmarkFolderRef,
+  Capture,
+  Tweet,
+  User,
+  UserLegacy,
+  WithSortIndex,
+} from '@/types';
 import { compareSortIndex, extractTweetMedia } from '@/utils/api';
 import { parseTwitterDateTime } from '@/utils/common';
 import { migration_20250609 } from '@/utils/migration';
@@ -12,7 +20,7 @@ import { ExtensionType } from '../extensions';
 import { options } from '../options';
 
 const DB_NAME = `${packageJson.name}-custom`;
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 declare global {
   interface Window {
@@ -59,6 +67,10 @@ export class DatabaseManager {
     return this.db.table<Capture>('captures');
   }
 
+  private bookmarkFolders() {
+    return this.db.table<BookmarkFolder>('bookmark_folders');
+  }
+
   /*
   |--------------------------------------------------------------------------
   | Read Methods for Extensions
@@ -94,6 +106,11 @@ export class DatabaseManager {
     // Build a map of bookmark_collection_ids from captures.
     const captureMap = new Map(sortedCaptures.map((c) => [c.data_key, c]));
 
+    // Resolve folder names. Reading the folder table inside the live query also makes the table
+    // view re-render when folder names are captured later.
+    const folderIds = [...new Set(sortedCaptures.flatMap((c) => c.bookmark_collection_ids ?? []))];
+    const folderNames = await this.getBookmarkFolderNames(folderIds);
+
     // Sort again based on capture order since IndexDB query with "anyOf" does not obey that order.
     const map = new Map(tweets.map((t) => [t.rest_id, t]));
     return tweetIds
@@ -105,6 +122,12 @@ export class DatabaseManager {
           tweet.twe_private_fields = {
             ...tweet.twe_private_fields,
             bookmark_collection_ids: capture.bookmark_collection_ids,
+            bookmark_folders: capture.bookmark_collection_ids.map(
+              (folderId): BookmarkFolderRef => ({
+                id: folderId,
+                name: folderNames.get(folderId) ?? null,
+              }),
+            ),
           };
         }
         return tweet;
@@ -225,6 +248,61 @@ export class DatabaseManager {
 
   /*
   |--------------------------------------------------------------------------
+  | Bookmark Folders
+  |--------------------------------------------------------------------------
+  */
+
+  async getBookmarkFolders() {
+    return this.bookmarkFolders().orderBy('name').toArray().catch(this.logError);
+  }
+
+  async getBookmarkFolderNames(ids: string[]) {
+    const names = new Map<string, string>();
+    if (!ids.length) {
+      return names;
+    }
+
+    const folders = await this.bookmarkFolders().bulkGet(ids).catch(this.logError);
+    for (const folder of folders ?? []) {
+      if (folder) {
+        names.set(folder.id, folder.name);
+      }
+    }
+    return names;
+  }
+
+  /**
+   * Insert or update bookmark folders. The latest name wins; `first_seen_at` is kept.
+   */
+  async upsertBookmarkFolders(folders: Pick<BookmarkFolder, 'id' | 'name' | 'media'>[]) {
+    if (!folders.length) {
+      return;
+    }
+
+    return this.db
+      .transaction('rw', this.bookmarkFolders(), async () => {
+        const existing = await this.bookmarkFolders().bulkGet(folders.map((f) => f.id));
+        const now = Date.now();
+
+        const data: BookmarkFolder[] = folders.map((folder, i) => {
+          const prev = existing[i];
+          return {
+            ...prev,
+            id: folder.id,
+            name: folder.name,
+            media: folder.media ?? prev?.media,
+            first_seen_at: prev?.first_seen_at ?? now,
+            updated_at: now,
+          };
+        });
+
+        return this.bookmarkFolders().bulkPut(data);
+      })
+      .catch(this.logError);
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | Delete Methods for Extensions
   |--------------------------------------------------------------------------
   */
@@ -274,6 +352,7 @@ export class DatabaseManager {
     await this.deleteAllCaptures();
     await this.deleteAllTweets();
     await this.deleteAllUsers();
+    await this.bookmarkFolders().clear().catch(this.logError);
     logger.info('Database cleared');
   }
 
@@ -283,6 +362,7 @@ export class DatabaseManager {
         tweets: await this.tweets().count(),
         users: await this.users().count(),
         captures: await this.captures().count(),
+        bookmark_folders: await this.bookmarkFolders().count(),
       };
     } catch (error) {
       this.logError(error);
@@ -433,6 +513,14 @@ export class DatabaseManager {
       'sort_index',
     ];
 
+    // Indexes for the "bookmark_folders" table (fork).
+    const bookmarkFolderIndexPaths: KeyPaths<BookmarkFolder>[] = [
+      'id',
+      'name',
+      'first_seen_at',
+      'updated_at',
+    ];
+
     // Take care of database schemas and versioning.
     // See: https://dexie.org/docs/Tutorial/Design#database-versioning
     try {
@@ -453,10 +541,16 @@ export class DatabaseManager {
         });
 
       // v3: adds sort_index index to captures for timeline ordering.
-      this.db.version(DB_VERSION).stores({
+      this.db.version(3).stores({
         tweets: tweetIndexPaths.join(','),
         users: userIndexPaths.join(','),
         captures: captureIndexPaths.join(','),
+      });
+
+      // v4 (fork): adds bookmark_folders table for folder id -> name mapping.
+      // Only a new table is added, so no data upgrade is needed.
+      this.db.version(DB_VERSION).stores({
+        bookmark_folders: bookmarkFolderIndexPaths.join(','),
       });
 
       await this.db.open();

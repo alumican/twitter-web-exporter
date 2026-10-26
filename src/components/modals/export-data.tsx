@@ -54,6 +54,10 @@ export function ExportDataModal<T>({ title, table, show, onClose }: ExportDataMo
         }
 
         record[meta?.exportKey || cell.column.id] = exportValue;
+
+        for (const extra of meta?.exportExtra ?? []) {
+          record[extra.key] = extra.value(row) ?? null;
+        }
       }
 
       if (includeMetadata) {
@@ -71,6 +75,9 @@ export function ExportDataModal<T>({ title, table, show, onClose }: ExportDataMo
         const key = column.columnDef.meta?.exportKey || column.id;
         const header = column.columnDef.meta?.exportHeader || column.id;
         acc[key] = t(header as TranslationKey);
+        for (const extra of column.columnDef.meta?.exportExtra ?? []) {
+          acc[extra.key] = t(extra.header as TranslationKey);
+        }
         return acc;
       }, {});
 

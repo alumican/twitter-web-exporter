@@ -1,3 +1,4 @@
+import { Fragment } from 'preact';
 import { createColumnHelper } from '@tanstack/table-core';
 import { IconLink } from '@tabler/icons-preact';
 import { formatDateTime, parseTwitterDateTime, strEntitiesToHTML } from '@/utils/common';
@@ -67,16 +68,45 @@ export const columns = [
     cell: (info) => <p class="w-20 break-all font-mono text-xs">{info.getValue()}</p>,
   }),
   columnHelper.accessor(
-    (row) => row.twe_private_fields?.bookmark_collection_ids?.join(', ') ?? '',
+    // Folder names (when known) and IDs, so that the global search matches both.
+    (row) =>
+      (row.twe_private_fields?.bookmark_folders ?? [])
+        .map((folder) => (folder.name ? `${folder.name} (${folder.id})` : folder.id))
+        .join(', '),
     {
       id: 'bookmark_folder_ids',
       meta: {
         exportKey: 'bookmark_folder_ids',
         exportHeader: 'Folder IDs',
         exportValue: (row) => row.original.twe_private_fields?.bookmark_collection_ids ?? [],
+        // Kept next to `bookmark_folder_ids` (unchanged for compatibility).
+        exportExtra: [
+          {
+            key: 'bookmark_folders',
+            header: 'Folders',
+            value: (row) => row.original.twe_private_fields?.bookmark_folders ?? [],
+          },
+        ],
       },
-      header: () => <Trans i18nKey="Folder IDs" />,
-      cell: (info) => <p class="w-24 break-all font-mono text-xs">{info.getValue() || 'N/A'}</p>,
+      header: () => <Trans i18nKey="Folders" />,
+      cell: (info) => {
+        const folders = info.row.original.twe_private_fields?.bookmark_folders ?? [];
+        if (!folders.length) {
+          return <p class="w-24 text-xs">N/A</p>;
+        }
+        return (
+          <p class="w-24 break-all text-xs">
+            {folders.map((folder, i) => (
+              <Fragment key={folder.id}>
+                {i > 0 && ', '}
+                <span title={folder.id} class={folder.name ? '' : 'font-mono'}>
+                  {folder.name ?? folder.id}
+                </span>
+              </Fragment>
+            ))}
+          </p>
+        );
+      },
     },
   ),
   columnHelper.accessor((row) => +parseTwitterDateTime(row.legacy?.created_at), {
