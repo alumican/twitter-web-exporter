@@ -159,21 +159,25 @@ export class DatabaseManager {
       sort_index: item.sortIndex,
     }));
 
-    if (bookmarkCollectionId) {
-      // Fetch existing captures and merge bookmark_collection_ids.
-      const ids = newCaptures.map((c) => c.id);
-      const existing = await this.captures().where('id').anyOf(ids).toArray();
-      const map = new Map(existing.map((c) => [c.id, c]));
+    // Fetch existing captures so that bookmark folder IDs are never lost. Without this, opening
+    // "All Bookmarks" after a folder would overwrite the capture and drop its folder IDs.
+    const ids = newCaptures.map((c) => c.id);
+    const existing = await this.captures().where('id').anyOf(ids).toArray().catch(this.logError);
+    const map = new Map((existing ?? []).map((c) => [c.id, c]));
 
-      for (const capture of newCaptures) {
-        const prev = map.get(capture.id);
-        const prevIds = prev?.bookmark_collection_ids ?? [];
+    for (const capture of newCaptures) {
+      const prev = map.get(capture.id);
+      const prevIds = prev?.bookmark_collection_ids ?? [];
+
+      if (bookmarkCollectionId) {
         capture.bookmark_collection_ids = [...new Set([...prevIds, bookmarkCollectionId])];
         if (prev) {
           // Preserve existing timestamp and sort index.
           capture.created_at = prev.created_at;
           capture.sort_index = prev.sort_index ?? capture.sort_index;
         }
+      } else if (prevIds.length) {
+        capture.bookmark_collection_ids = prevIds;
       }
     }
 
